@@ -140,6 +140,13 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:text="@string/help" />
+        <!-- ✅ Bouton vers la page de réglage d'avance -->
+        <Button
+            android:id="@+id/btnTiming"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/open_timing" />
 
         <!-- ✅ Texte "Cortex powered" en bleu -->
         <TextView
