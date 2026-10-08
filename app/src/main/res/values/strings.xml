@@ -12,4 +12,5 @@
     <string name="freq_basse">Fréquence basse : %d Hz</string>
     <string name="freq_haute">Fréquence haute : %d Hz</string>
     <string name="anti_rebond">Anti-doublons : %d ms</string>
+    <string name="powered_by">Cortex powered</string>
 </resources>
