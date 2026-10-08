@@ -2,6 +2,7 @@ package com.example.cortexknock
 
 import android.Manifest
 import android.app.AlertDialog
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioFormat
 import android.media.AudioRecord
@@ -29,7 +30,7 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val TAG = "CortexKnock"
         private const val REQ_AUDIO = 1
-        private const val VITESSE_SON = 340.0   // m/s à 20°C
+        private const val VITESSE_SON = 340.0
     }
 
     private lateinit var tvStatus: TextView
@@ -117,6 +118,10 @@ class MainActivity : AppCompatActivity() {
             showHelpDialog()
         }
 
+        findViewById<Button>(R.id.btnTiming).setOnClickListener {
+            startActivity(Intent(this, TimingActivity::class.java))
+        }
+
         setupSeekBars()
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
@@ -170,9 +175,7 @@ class MainActivity : AppCompatActivity() {
 
     /**
      * Calcule la fréquence de résonance du cliquetis à partir de l'alésage.
-     * On vise la 3ᵉ harmonique (plus facile à détecter au micro).
-     *
-     * Formule : f = 3 × v / (π × D)
+     * Formule : f = 4 × v / (π × D)  → vise la 4ᵉ harmonique.
      */
     private fun applyBoreCalibration(boreMm: Double) {
         val boreM = boreMm / 1000.0
