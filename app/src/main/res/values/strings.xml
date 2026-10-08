@@ -40,8 +40,8 @@
 \n
 ⚙️ RÉGLAGE AVANCE\n
 \n
-- AVANCE = tourner le stator en ANTIHORAIRE\n
-- RETARD = tourner le stator en HORAIRE\n
+- AVANCE = sens INVERSE du moteur\n
+- RETARD = sens du moteur\n
 - Max 35° avant PMH pour un 2 temps\n
 - Au-delà : risque de cliquetis et surchauffe\n
 \n
@@ -57,8 +57,8 @@
 
     <string name="timing_title">Réglage avance à l\'allumage</string>
     <string name="timing_angle">Avance : %d° avant PMH</string>
-    <string name="timing_cw">↻ Horaire (retard)</string>
-    <string name="timing_ccw">↺ Antihoraire (avance)</string>
+    <string name="timing_cw">↻ Moteur horaire</string>
+    <string name="timing_ccw">↺ Moteur antihoraire</string>
     <string name="timing_save">💾 Sauvegarder le réglage</string>
     <string name="timing_saved">Réglage sauvegardé à %d°</string>
 
