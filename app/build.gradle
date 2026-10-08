@@ -30,10 +30,6 @@ android {
     kotlinOptions {
         jvmTarget = '17'
     }
-
-    buildFeatures {
-        viewBinding false
-    }
 }
 
 dependencies {
@@ -42,7 +38,7 @@ dependencies {
     implementation 'com.google.android.material:material:1.11.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
 
-    // ✅ TarsosDSP : version 2.4 disponible sur Maven Central (fonctionne)
-    implementation 'be.tarsos.dsp:core:2.4'
-    implementation 'be.tarsos.dsp:jvm:2.4'
+    // ✅ TarsosDSP : disponible sur https://mvn.0110.be/releases
+    implementation 'be.tarsos.dsp:core:2.5'
+    implementation 'be.tarsos.dsp:jvm:2.5'
 }
