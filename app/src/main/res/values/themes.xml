@@ -1,5 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.AppCompat.DayNight" parent="Theme.AppCompat.DayNight.NoActionBar">
-        <item name="android:windowBackground">#111111</item>
+    <style name="Theme.CortexKnock" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="colorPrimary">#3F51B5</item>
+        <item name="colorPrimaryDark">#303F9F</item>
+        <item name="colorAccent">#FF4081</item>
     </style>
 </resources>
