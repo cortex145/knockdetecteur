@@ -2,6 +2,9 @@ package com.example.cortexknock
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.media.AudioFormat
+import android.media.AudioRecord
+import android.media.MediaRecorder
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
@@ -10,10 +13,8 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import be.tarsos.dsp.AudioDispatcher
 import be.tarsos.dsp.AudioEvent
 import be.tarsos.dsp.AudioProcessor
-import be.tarsos.dsp.io.android.AudioDispatcherFactory
 import be.tarsos.dsp.util.fft.FFT
 import kotlin.math.cos
 
@@ -32,9 +33,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnStart: Button
     private lateinit var btnStop: Button
 
-    private var dispatcher: AudioDispatcher? = null
+    private var audioRecord: AudioRecord? = null
     @Volatile private var isRunning = false
-    private var dispatcherThread: Thread? = null
+    private var audioThread: Thread? = null
 
     private val sampleRate = 44100
     private val bufferSize = 1024
@@ -48,6 +49,9 @@ class MainActivity : AppCompatActivity() {
     private var noiseFloor = 0.0
     private var knockCounter = 0
     private var lastKnockTime = 0L
+
+    // Processor FFT unique, réutilisé à chaque bloc
+    private val fftProcessor = FFTProcessor()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -137,35 +141,95 @@ class MainActivity : AppCompatActivity() {
         }
 
         try {
+            val minBuf = AudioRecord.getMinBufferSize(
+                sampleRate,
+                AudioFormat.CHANNEL_IN_MONO,
+                AudioFormat.ENCODING_PCM_16BIT
+            )
+            val recBufSize = maxOf(minBuf, bufferSize * 4)
+
+            audioRecord = AudioRecord(
+                MediaRecorder.AudioSource.MIC,
+                sampleRate,
+                AudioFormat.CHANNEL_IN_MONO,
+                AudioFormat.ENCODING_PCM_16BIT,
+                recBufSize
+            )
+
+            if (audioRecord?.state != AudioRecord.STATE_INITIALIZED) {
+                tvStatus.text = "Erreur : micro non initialisé"
+                audioRecord?.release()
+                audioRecord = null
+                return
+            }
+
+            audioRecord?.startRecording()
             isRunning = true
             tvStatus.text = getString(R.string.listening)
             btnStart.isEnabled = false
             btnStop.isEnabled = true
 
-            dispatcher = AudioDispatcherFactory.fromDefaultMicrophone(sampleRate, bufferSize, overlap)
-            dispatcher?.addAudioProcessor(FFTProcessor())
-            dispatcherThread = Thread(dispatcher, "AudioDispatcher")
-            dispatcherThread?.start()
-            Log.d(TAG, "startListening: dispatcher démarré")
+            audioThread = Thread {
+                val shortBuffer = ShortArray(bufferSize)
+                val floatBuffer = FloatArray(bufferSize)
+
+                while (isRunning) {
+                    val read = audioRecord?.read(shortBuffer, 0, bufferSize) ?: 0
+                    if (read <= 0) {
+                        // Rien lu, on attend un peu et on retente
+                        try { Thread.sleep(10) } catch (_: InterruptedException) {}
+                        continue
+                    }
+
+                    // Convertir Short → Float (échelle [-1, 1])
+                    for (i in 0 until read) {
+                        floatBuffer[i] = shortBuffer[i] / 32768.0f
+                    }
+
+                    // Construire un AudioEvent et l'envoyer au processor
+                    try {
+                        val event = AudioEvent(
+                            floatBuffer,
+                            sampleRate.toFloat(),
+                            bufferSize,
+                            overlap,
+                            -1.0,
+                            -1
+                        )
+                        fftProcessor.process(event)
+                    } catch (e: Throwable) {
+                        Log.e(TAG, "Erreur traitement audio", e)
+                    }
+                }
+
+                Log.d(TAG, "Boucle audio terminée")
+            }.also { it.name = "AudioLoop"; it.start() }
+
+            Log.d(TAG, "startListening: micro démarré")
         } catch (e: Throwable) {
             Log.e(TAG, "startListening: erreur", e)
             isRunning = false
             tvStatus.text = "Erreur : ${e.message}"
             btnStart.isEnabled = true
             btnStop.isEnabled = false
+            audioRecord?.release()
+            audioRecord = null
         }
     }
 
     private fun stopListening() {
         isRunning = false
         try {
-            dispatcher?.stop()
-        } catch (e: Throwable) {
-            Log.e(TAG, "stopListening: erreur stop", e)
-        }
-        dispatcher = null
-        dispatcherThread?.join(500)
-        dispatcherThread = null
+            audioRecord?.stop()
+        } catch (_: Throwable) {}
+        try {
+            audioRecord?.release()
+        } catch (_: Throwable) {}
+        audioRecord = null
+
+        audioThread?.join(500)
+        audioThread = null
+
         tvStatus.text = getString(R.string.stopped)
         btnStart.isEnabled = true
         btnStop.isEnabled = false
@@ -194,6 +258,7 @@ class MainActivity : AppCompatActivity() {
         override fun process(audioEvent: AudioEvent): Boolean {
             val buffer = audioEvent.floatBuffer
 
+            // Fenêtrage de Hann
             for (i in buffer.indices) {
                 val w = 0.5 * (1.0 - cos(2.0 * Math.PI * i / (buffer.size - 1)))
                 buffer[i] *= w.toFloat()
