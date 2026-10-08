@@ -1,15 +1,19 @@
 package com.example.cortexknock
 
 import android.Manifest
+import android.app.AlertDialog
 import android.content.pm.PackageManager
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
 import android.os.Bundle
+import android.text.InputType
 import android.util.Log
 import android.widget.Button
+import android.widget.EditText
 import android.widget.SeekBar
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -17,6 +21,7 @@ import be.tarsos.dsp.AudioEvent
 import be.tarsos.dsp.AudioProcessor
 import be.tarsos.dsp.io.TarsosDSPAudioFormat
 import be.tarsos.dsp.util.fft.FFT
+import kotlin.math.PI
 import kotlin.math.cos
 
 class MainActivity : AppCompatActivity() {
@@ -24,6 +29,7 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val TAG = "CortexKnock"
         private const val REQ_AUDIO = 1
+        private const val VITESSE_SON = 340.0   // m/s à 20°C
     }
 
     private lateinit var tvStatus: TextView
@@ -34,6 +40,16 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnStart: Button
     private lateinit var btnStop: Button
 
+    private lateinit var sbFmin: SeekBar
+    private lateinit var sbFmax: SeekBar
+    private lateinit var sbSens: SeekBar
+    private lateinit var sbCooldown: SeekBar
+
+    private lateinit var lblFmin: TextView
+    private lateinit var lblFmax: TextView
+    private lateinit var lblSens: TextView
+    private lateinit var lblCooldown: TextView
+
     private var audioRecord: AudioRecord? = null
     @Volatile private var isRunning = false
     private var audioThread: Thread? = null
@@ -42,8 +58,8 @@ class MainActivity : AppCompatActivity() {
     private val bufferSize = 1024
     private val overlap = 512
 
-    @Volatile private var knockFreqMin = 7500.0
-    @Volatile private var knockFreqMax = 8500.0
+    @Volatile private var knockFreqMin = 5500.0
+    @Volatile private var knockFreqMax = 7500.0
     @Volatile private var thresholdFactor = 3.0
     @Volatile private var knockCooldownMs = 150L
 
@@ -53,7 +69,6 @@ class MainActivity : AppCompatActivity() {
 
     private val fftProcessor = FFTProcessor()
 
-    // Format audio réutilisé pour les AudioEvent
     private val audioFormat = TarsosDSPAudioFormat(
         sampleRate.toFloat(),
         16,
@@ -74,6 +89,16 @@ class MainActivity : AppCompatActivity() {
         btnStart = findViewById(R.id.btnStart)
         btnStop = findViewById(R.id.btnStop)
 
+        sbFmin = findViewById(R.id.sbFmin)
+        sbFmax = findViewById(R.id.sbFmax)
+        sbSens = findViewById(R.id.sbSens)
+        sbCooldown = findViewById(R.id.sbCooldown)
+
+        lblFmin = findViewById(R.id.lblFmin)
+        lblFmax = findViewById(R.id.lblFmax)
+        lblSens = findViewById(R.id.lblSens)
+        lblCooldown = findViewById(R.id.lblCooldown)
+
         tvCounter.text = "${getString(R.string.knock_counter)}0"
 
         btnStart.setOnClickListener { startListening() }
@@ -81,6 +106,10 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btnReset).setOnClickListener {
             knockCounter = 0
             tvCounter.text = "${getString(R.string.knock_counter)}0"
+        }
+
+        findViewById<Button>(R.id.btnCalibrate).setOnClickListener {
+            showBoreDialog()
         }
 
         setupSeekBars()
@@ -92,9 +121,78 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Affiche une boîte de dialogue pour saisir l'alésage du cylindre.
+     * Calcule ensuite la fréquence de résonance et ajuste les curseurs.
+     */
+    private fun showBoreDialog() {
+        val input = EditText(this).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+            hint = "Ex : 54"
+            setPadding(48, 32, 48, 32)
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle(R.string.dialog_bore_title)
+            .setMessage(R.string.dialog_bore_message)
+            .setView(input)
+            .setPositiveButton(R.string.dialog_ok) { _, _ ->
+                val boreStr = input.text.toString().replace(',', '.').trim()
+                if (boreStr.isEmpty()) {
+                    Toast.makeText(this, "Entrez une valeur", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                val boreMm = boreStr.toDoubleOrNull()
+                if (boreMm == null || boreMm <= 0.0) {
+                    Toast.makeText(this, "Valeur invalide", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                applyBoreCalibration(boreMm)
+            }
+            .setNegativeButton(R.string.dialog_cancel, null)
+            .show()
+    }
+
+    /**
+     * Calcule la fréquence de résonance à partir de l'alésage
+     * et met à jour les curseurs de fréquence.
+     *
+     * Formule : f = v / (π × D)
+     * avec v = 340 m/s et D = alésage en mètres.
+     */
+    private fun applyBoreCalibration(boreMm: Double) {
+        val boreM = boreMm / 1000.0
+        val frequency = VITESSE_SON / (PI * boreM)
+
+        // Bande ±15 % autour de la fréquence centrale
+        val fmin = (frequency * 0.85).coerceAtLeast(2000.0)
+        val fmax = (frequency * 1.15).coerceAtMost(12000.0)
+
+        // Mise à jour des variables
+        knockFreqMin = fmin
+        knockFreqMax = fmax
+
+        // Conversion en progress pour les SeekBars
+        val progressMin = (((fmin - 2000.0) / 8000.0) * 100).toInt().coerceIn(0, 100)
+        val progressMax = (((fmax - 3000.0) / 9000.0) * 100).toInt().coerceIn(0, 100)
+
+        sbFmin.progress = progressMin
+        sbFmax.progress = progressMax
+
+        // Mise à jour des labels
+        lblFmin.text = "Fréquence basse : ${fmin.toInt()} Hz"
+        lblFmax.text = "Fréquence haute : ${fmax.toInt()} Hz"
+
+        // Mise à jour du spectre
+        spectrumView.setKnockBand(knockFreqMin, knockFreqMax)
+
+        val message = "Alésage : %.1f mm\nFréquence calculée : %.0f Hz".format(boreMm, frequency)
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+        Log.d(TAG, "Calibration : alésage=$boreMm mm, f=$frequency Hz, bande=[$fmin..$fmax]")
+    }
+
     private fun setupSeekBars() {
-        val lblSens = findViewById<TextView>(R.id.lblSens)
-        findViewById<SeekBar>(R.id.sbSens).setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+        sbSens.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
                 thresholdFactor = 1.5 + (progress / 100.0) * 8.5
                 lblSens.text = "Sensibilité : %.1f".format(thresholdFactor)
@@ -103,8 +201,7 @@ class MainActivity : AppCompatActivity() {
             override fun onStopTrackingTouch(sb: SeekBar?) {}
         })
 
-        val lblFmin = findViewById<TextView>(R.id.lblFmin)
-        findViewById<SeekBar>(R.id.sbFmin).setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+        sbFmin.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
                 val fmin = 2000.0 + (progress / 100.0) * 8000.0
                 if (fmin < knockFreqMax - 200) knockFreqMin = fmin
@@ -115,8 +212,7 @@ class MainActivity : AppCompatActivity() {
             override fun onStopTrackingTouch(sb: SeekBar?) {}
         })
 
-        val lblFmax = findViewById<TextView>(R.id.lblFmax)
-        findViewById<SeekBar>(R.id.sbFmax).setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+        sbFmax.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
                 val fmax = 3000.0 + (progress / 100.0) * 9000.0
                 if (fmax > knockFreqMin + 200) knockFreqMax = fmax
@@ -127,8 +223,7 @@ class MainActivity : AppCompatActivity() {
             override fun onStopTrackingTouch(sb: SeekBar?) {}
         })
 
-        val lblCooldown = findViewById<TextView>(R.id.lblCooldown)
-        findViewById<SeekBar>(R.id.sbCooldown).setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+        sbCooldown.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
                 knockCooldownMs = (30 + (progress / 100.0) * 470).toLong()
                 lblCooldown.text = "Anti-rebond : ${knockCooldownMs} ms"
@@ -189,12 +284,10 @@ class MainActivity : AppCompatActivity() {
                         continue
                     }
 
-                    // Convertir Short → Float (échelle [-1, 1])
                     for (i in 0 until read) {
                         floatBuffer[i] = shortBuffer[i] / 32768.0f
                     }
 
-                    // Construire un AudioEvent compatible TarsosDSP 2.5
                     try {
                         val event = AudioEvent(audioFormat)
                         event.setFloatBuffer(floatBuffer)
@@ -203,8 +296,6 @@ class MainActivity : AppCompatActivity() {
                         Log.e(TAG, "Erreur traitement audio", e)
                     }
                 }
-
-                Log.d(TAG, "Boucle audio terminée")
             }.also { it.name = "AudioLoop"; it.start() }
 
             Log.d(TAG, "startListening: micro démarré")
@@ -221,12 +312,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun stopListening() {
         isRunning = false
-        try {
-            audioRecord?.stop()
-        } catch (_: Throwable) {}
-        try {
-            audioRecord?.release()
-        } catch (_: Throwable) {}
+        try { audioRecord?.stop() } catch (_: Throwable) {}
+        try { audioRecord?.release() } catch (_: Throwable) {}
         audioRecord = null
 
         audioThread?.join(500)
