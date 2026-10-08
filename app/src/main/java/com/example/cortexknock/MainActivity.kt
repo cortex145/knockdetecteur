@@ -113,6 +113,10 @@ class MainActivity : AppCompatActivity() {
             showBoreDialog()
         }
 
+        findViewById<Button>(R.id.btnHelp).setOnClickListener {
+            showHelpDialog()
+        }
+
         setupSeekBars()
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
@@ -122,6 +126,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Affiche une boîte de dialogue pour saisir l'alésage du cylindre.
+     */
     private fun showBoreDialog() {
         val input = EditText(this).apply {
             inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
@@ -151,17 +158,26 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
+     * Affiche la fenêtre d'aide avec le mode d'emploi complet.
+     */
+    private fun showHelpDialog() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.help_title)
+            .setMessage(R.string.help_content)
+            .setPositiveButton("OK", null)
+            .show()
+    }
+
+    /**
      * Calcule la fréquence de résonance du cliquetis à partir de l'alésage.
-     * On vise la 3ᵉ harmonique (plus facile à détecter qu'un micro).
+     * On vise la 3ᵉ harmonique (plus facile à détecter au micro).
      *
      * Formule : f = 3 × v / (π × D)
-     * avec v = 340 m/s et D = alésage en mètres.
      */
     private fun applyBoreCalibration(boreMm: Double) {
         val boreM = boreMm / 1000.0
         val frequency = 3.0 * VITESSE_SON / (PI * boreM)
 
-        // Bande ±15 % autour de la fréquence centrale
         val fmin = (frequency * 0.85).coerceAtLeast(2000.0)
         val fmax = (frequency * 1.15).coerceAtMost(12000.0)
 
@@ -356,13 +372,11 @@ class MainActivity : AppCompatActivity() {
             val knockEnergy = computeBandEnergy(amplitudes, localMin, localMax)
             val totalEnergy = computeTotalEnergy(amplitudes)
 
-            // ✅ Bruit de fond plus stable (pics brefs mieux détectés)
             noiseFloor = if (frameCount < 30) totalEnergy
             else 0.98 * noiseFloor + 0.02 * totalEnergy
 
             val now = System.currentTimeMillis()
 
-            // ✅ Seuil renforcé + seuil minimum abaissé pour cliquetis faibles
             val knockDetected = knockEnergy > localThresh * noiseFloor &&
                 knockEnergy > 0.005 &&
                 (now - lastKnockTime) > localCooldown
