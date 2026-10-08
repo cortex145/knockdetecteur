@@ -30,38 +30,35 @@ class SpectrumView @JvmOverloads constructor(
         val width = width.toFloat()
         val height = height.toFloat()
 
-        // Draw background
         paint.color = Color.BLACK
         canvas.drawRect(0f, 0f, width, height, paint)
 
         if (amplitudes.isEmpty()) return
 
-        val binWidth = sampleRate.toDouble() / bufferSize
+        val binWidth = sampleRate.toDouble() / bufferSize.toDouble()
         val startBin = (knockFreqMin / binWidth).toInt().coerceIn(0, amplitudes.size - 1)
         val endBin = (knockFreqMax / binWidth).toInt().coerceIn(0, amplitudes.size - 1)
 
-        // Draw waveform
         paint.color = Color.GREEN
         paint.strokeWidth = 2f
 
-        val pixelWidth = width / amplitudes.size
+        val pixelWidth = width / amplitudes.size.toFloat()
         for (i in amplitudes.indices) {
             val x = i * pixelWidth
-            val magnitude = amplitudes[i]
-            val normalizedMagnitude = (log10((magnitude + 1).toDouble()) / 5f).coerceIn(0f, 1f)
-            val y = height - (normalizedMagnitude * height)
+            val magnitude = amplitudes[i].toDouble()
+            val normalizedMagnitude = ((log10(magnitude + 1.0) / log10(10.0)) * 0.2).coerceIn(0.0, 1.0)
+            val y = height - (normalizedMagnitude * height).toFloat()
 
             if (i == 0) {
                 canvas.drawPoint(x, y, paint)
             } else {
-                val prevMagnitude = amplitudes[i - 1]
-                val prevNormalized = (log10((prevMagnitude + 1).toDouble()) / 5f).coerceIn(0f, 1f)
-                val prevY = height - (prevNormalized * height)
+                val prevMagnitude = amplitudes[i - 1].toDouble()
+                val prevNormalized = ((log10(prevMagnitude + 1.0) / log10(10.0)) * 0.2).coerceIn(0.0, 1.0)
+                val prevY = height - (prevNormalized * height).toFloat()
                 canvas.drawLine(x - pixelWidth, prevY, x, y, paint)
             }
         }
 
-        // Draw knock band
         paint.color = Color.RED
         paint.strokeWidth = 3f
         val startX = startBin * pixelWidth
