@@ -44,25 +44,25 @@ class SpectrumView @JvmOverloads constructor(
 
         val pixelWidth = width / amplitudes.size.toFloat()
         for (i in amplitudes.indices) {
-            val x = i * pixelWidth
+            val x = (i * pixelWidth)
             val magnitude = amplitudes[i].toDouble()
-            val normalizedMagnitude = ((log10(magnitude + 1.0) / log10(10.0)) * 0.2).coerceIn(0.0, 1.0)
-            val y = height - (normalizedMagnitude * height).toFloat()
+            val normalizedMagnitude = (log10(magnitude + 1.0) / 5.0).toFloat().coerceIn(0f, 1f)
+            val y = height - (normalizedMagnitude * height)
 
             if (i == 0) {
                 canvas.drawPoint(x, y, paint)
             } else {
                 val prevMagnitude = amplitudes[i - 1].toDouble()
-                val prevNormalized = ((log10(prevMagnitude + 1.0) / log10(10.0)) * 0.2).coerceIn(0.0, 1.0)
-                val prevY = height - (prevNormalized * height).toFloat()
+                val prevNormalized = (log10(prevMagnitude + 1.0) / 5.0).toFloat().coerceIn(0f, 1f)
+                val prevY = height - (prevNormalized * height)
                 canvas.drawLine(x - pixelWidth, prevY, x, y, paint)
             }
         }
 
         paint.color = Color.RED
         paint.strokeWidth = 3f
-        val startX = startBin * pixelWidth
-        val endX = endBin * pixelWidth
+        val startX = (startBin * pixelWidth)
+        val endX = (endBin * pixelWidth)
         canvas.drawLine(startX, 0f, startX, height, paint)
         canvas.drawLine(endX, 0f, endX, height, paint)
     }
