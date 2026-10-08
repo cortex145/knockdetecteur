@@ -18,5 +18,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".TimingActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:label="Réglage avance" />
+
     </application>
 </manifest>
