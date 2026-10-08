@@ -125,6 +125,14 @@
             android:max="100"
             android:progress="25" />
 
+        <!-- ✅ Bouton de calibrage par alésage -->
+        <Button
+            android:id="@+id/btnCalibrate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/calibrate_cylinder" />
+
         <!-- ✅ Texte "Cortex powered" en bleu -->
         <TextView
             android:id="@+id/tvPoweredBy"
