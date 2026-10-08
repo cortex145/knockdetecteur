@@ -4,7 +4,7 @@
     <string name="knock_counter">Frappes : </string>
     <string name="listening">Écoute en cours…</string>
     <string name="stopped">Arrêté</string>
-    <string name="knock_detected">🔨 Frappe détectée !</string>
+    <string name="knock_detected">🔨 Cliqueti détectée !</string>
     <string name="start">Démarrer</string>
     <string name="stop">Arrêter</string>
     <string name="reset">Réinitialiser</string>
