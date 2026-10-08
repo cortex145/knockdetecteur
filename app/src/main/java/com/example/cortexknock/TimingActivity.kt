@@ -25,7 +25,7 @@ class TimingActivity : AppCompatActivity() {
     private lateinit var tvHistory: TextView
 
     private var currentAngle = 20
-    private var currentCw = true
+    private var isAdvancing = true   // true = antihoraire = avance
     private var lastWarningPlayed = false
 
     private val toneGenerator: ToneGenerator by lazy {
@@ -44,14 +44,13 @@ class TimingActivity : AppCompatActivity() {
         val sbAngle = findViewById<SeekBar>(R.id.sbAngle)
         sbAngle.max = 35
 
-        // Charger le réglage sauvegardé
         val prefs = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         currentAngle = prefs.getInt(KEY_ANGLE, 20)
-        currentCw = prefs.getBoolean(KEY_DIRECTION, true)
+        isAdvancing = prefs.getBoolean(KEY_DIRECTION, true)
 
         sbAngle.progress = currentAngle
         timingView.setAngle(currentAngle)
-        timingView.setDirection(currentCw)
+        timingView.setAdvancing(isAdvancing)
 
         updateUi()
 
@@ -61,7 +60,6 @@ class TimingActivity : AppCompatActivity() {
                 timingView.setAngle(progress)
                 updateUi()
 
-                // ✅ Son d'alerte si avance > 30°
                 if (progress > 30 && !lastWarningPlayed) {
                     playWarningTone()
                     lastWarningPlayed = true
@@ -73,25 +71,26 @@ class TimingActivity : AppCompatActivity() {
             override fun onStopTrackingTouch(sb: SeekBar?) {}
         })
 
-        findViewById<Button>(R.id.btnCw).setOnClickListener {
-            currentCw = true
-            timingView.setDirection(true)
-            updateUi()
-            playClickTone()
-        }
-
+        // ✅ AVANCE = antihoraire (sens inverse du moteur)
         findViewById<Button>(R.id.btnCcw).setOnClickListener {
-            currentCw = false
-            timingView.setDirection(false)
+            isAdvancing = true
+            timingView.setAdvancing(true)
             updateUi()
             playClickTone()
         }
 
-        // ✅ Sauvegarde
+        // ✅ RETARD = horaire (sens du moteur)
+        findViewById<Button>(R.id.btnCw).setOnClickListener {
+            isAdvancing = false
+            timingView.setAdvancing(false)
+            updateUi()
+            playClickTone()
+        }
+
         findViewById<Button>(R.id.btnSave).setOnClickListener {
             prefs.edit()
                 .putInt(KEY_ANGLE, currentAngle)
-                .putBoolean(KEY_DIRECTION, currentCw)
+                .putBoolean(KEY_DIRECTION, isAdvancing)
                 .apply()
             Toast.makeText(
                 this,
@@ -101,7 +100,6 @@ class TimingActivity : AppCompatActivity() {
             playClickTone()
         }
 
-        // ✅ Boutons de ressenti
         findViewById<Button>(R.id.btnBien).setOnClickListener {
             saveFeel("Bien", currentAngle)
         }
@@ -112,7 +110,6 @@ class TimingActivity : AppCompatActivity() {
             saveFeel("Max", currentAngle)
         }
 
-        // ✅ Historique
         findViewById<Button>(R.id.btnHistory).setOnClickListener {
             showHistory()
         }
@@ -125,7 +122,8 @@ class TimingActivity : AppCompatActivity() {
 
     private fun updateUi() {
         tvAngle.text = getString(R.string.timing_angle, currentAngle)
-        tvInfo.text = when {
+        val dirLabel = if (isAdvancing) "↺ Antihoraire (avance)" else "↻ Horaire (retard)"
+        tvInfo.text = "$dirLabel\n" + when {
             currentAngle < 10 -> "⚠️ Avance faible — moteur peu performant"
             currentAngle in 10..20 -> "✅ Avance modérée — usage enduro / bas régime"
             currentAngle in 21..30 -> "✅ Avance sportive — usage cross / mi-régime"
