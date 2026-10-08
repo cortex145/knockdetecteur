@@ -10,6 +10,12 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven {
+            url "https://mvnrepository.com/artifact/"
+        }
+        maven {
+            url "https://jcenter.bintray.com"
+        }
     }
 }
 rootProject.name = "KnockDetector"
