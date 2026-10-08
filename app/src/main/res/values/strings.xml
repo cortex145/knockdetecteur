@@ -61,6 +61,7 @@
     <string name="timing_ccw">↺ Moteur antihoraire</string>
     <string name="timing_save">💾 Sauvegarder le réglage</string>
     <string name="timing_saved">Réglage sauvegardé à %d°</string>
+    <string name="timing_stroke">Course : %d mm</string>
 
     <string name="feel_bien">👍 Bien</string>
     <string name="feel_moyen">👌 Moyen</string>
