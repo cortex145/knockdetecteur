@@ -11,7 +11,7 @@ import androidx.core.app.ActivityCompat
 import be.tarsos.dsp.AudioDispatcher
 import be.tarsos.dsp.AudioEvent
 import be.tarsos.dsp.AudioProcessor
-import be.tarsos.dsp.io.android.AudioDispatcherFactory
+import be.tarsos.dsp.io.jvm.AudioDispatcherFactory
 import be.tarsos.dsp.util.fft.FFT
 import kotlin.math.cos
 
@@ -159,12 +159,12 @@ class MainActivity : AppCompatActivity() {
             val totalEnergy = computeTotalEnergy(amplitudes)
 
             noiseFloor = if (frameCount < 10) totalEnergy
-                         else 0.95 * noiseFloor + 0.05 * totalEnergy
+            else 0.95 * noiseFloor + 0.05 * totalEnergy
 
             val now = System.currentTimeMillis()
             val knockDetected = knockEnergy > localThresh * noiseFloor &&
-                                knockEnergy > 0.01 &&
-                                (now - lastKnockTime) > localCooldown
+                knockEnergy > 0.01 &&
+                (now - lastKnockTime) > localCooldown
 
             if (knockDetected) {
                 lastKnockTime = now
