@@ -58,10 +58,11 @@ class MainActivity : AppCompatActivity() {
     private val bufferSize = 1024
     private val overlap = 512
 
-    @Volatile private var knockFreqMin = 5500.0
-    @Volatile private var knockFreqMax = 7500.0
-    @Volatile private var thresholdFactor = 3.0
-    @Volatile private var knockCooldownMs = 150L
+    // ✅ Réglages optimisés pour le cliquetis moteur (harmoniques 6-9 kHz)
+    @Volatile private var knockFreqMin = 6000.0
+    @Volatile private var knockFreqMax = 9000.0
+    @Volatile private var thresholdFactor = 4.0
+    @Volatile private var knockCooldownMs = 50L
 
     private var noiseFloor = 0.0
     private var knockCounter = 0
@@ -121,10 +122,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * Affiche une boîte de dialogue pour saisir l'alésage du cylindre.
-     * Calcule ensuite la fréquence de résonance et ajuste les curseurs.
-     */
     private fun showBoreDialog() {
         val input = EditText(this).apply {
             inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
@@ -154,39 +151,35 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * Calcule la fréquence de résonance à partir de l'alésage
-     * et met à jour les curseurs de fréquence.
+     * Calcule la fréquence de résonance du cliquetis à partir de l'alésage.
+     * On vise la 3ᵉ harmonique (plus facile à détecter qu'un micro).
      *
-     * Formule : f = v / (π × D)
+     * Formule : f = 3 × v / (π × D)
      * avec v = 340 m/s et D = alésage en mètres.
      */
     private fun applyBoreCalibration(boreMm: Double) {
         val boreM = boreMm / 1000.0
-        val frequency = VITESSE_SON / (PI * boreM)
+        val frequency = 3.0 * VITESSE_SON / (PI * boreM)
 
         // Bande ±15 % autour de la fréquence centrale
         val fmin = (frequency * 0.85).coerceAtLeast(2000.0)
         val fmax = (frequency * 1.15).coerceAtMost(12000.0)
 
-        // Mise à jour des variables
         knockFreqMin = fmin
         knockFreqMax = fmax
 
-        // Conversion en progress pour les SeekBars
         val progressMin = (((fmin - 2000.0) / 8000.0) * 100).toInt().coerceIn(0, 100)
         val progressMax = (((fmax - 3000.0) / 9000.0) * 100).toInt().coerceIn(0, 100)
 
         sbFmin.progress = progressMin
         sbFmax.progress = progressMax
 
-        // Mise à jour des labels
         lblFmin.text = "Fréquence basse : ${fmin.toInt()} Hz"
         lblFmax.text = "Fréquence haute : ${fmax.toInt()} Hz"
 
-        // Mise à jour du spectre
         spectrumView.setKnockBand(knockFreqMin, knockFreqMax)
 
-        val message = "Alésage : %.1f mm\nFréquence calculée : %.0f Hz".format(boreMm, frequency)
+        val message = "Alésage : %.1f mm\nFréquence cliquetis : %.0f Hz".format(boreMm, frequency)
         Toast.makeText(this, message, Toast.LENGTH_LONG).show()
         Log.d(TAG, "Calibration : alésage=$boreMm mm, f=$frequency Hz, bande=[$fmin..$fmax]")
     }
@@ -226,7 +219,7 @@ class MainActivity : AppCompatActivity() {
         sbCooldown.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
                 knockCooldownMs = (30 + (progress / 100.0) * 470).toLong()
-                lblCooldown.text = "Anti-rebond : ${knockCooldownMs} ms"
+                lblCooldown.text = "Anti-doublons : ${knockCooldownMs} ms"
             }
             override fun onStartTrackingTouch(sb: SeekBar?) {}
             override fun onStopTrackingTouch(sb: SeekBar?) {}
@@ -363,12 +356,15 @@ class MainActivity : AppCompatActivity() {
             val knockEnergy = computeBandEnergy(amplitudes, localMin, localMax)
             val totalEnergy = computeTotalEnergy(amplitudes)
 
-            noiseFloor = if (frameCount < 10) totalEnergy
-            else 0.95 * noiseFloor + 0.05 * totalEnergy
+            // ✅ Bruit de fond plus stable (pics brefs mieux détectés)
+            noiseFloor = if (frameCount < 30) totalEnergy
+            else 0.98 * noiseFloor + 0.02 * totalEnergy
 
             val now = System.currentTimeMillis()
+
+            // ✅ Seuil renforcé + seuil minimum abaissé pour cliquetis faibles
             val knockDetected = knockEnergy > localThresh * noiseFloor &&
-                knockEnergy > 0.01 &&
+                knockEnergy > 0.005 &&
                 (now - lastKnockTime) > localCooldown
 
             if (knockDetected) {
