@@ -40,7 +40,7 @@
         <com.example.cortexknock.TimingView
             android:id="@+id/timingView"
             android:layout_width="match_parent"
-            android:layout_height="400dp"
+            android:layout_height="420dp"
             android:layout_marginBottom="12dp" />
 
         <TextView
@@ -55,7 +55,6 @@
             android:max="35"
             android:progress="20" />
 
-        <!-- ✅ Boutons sens de rotation (corrigés) -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -76,6 +75,22 @@
                 android:layout_weight="1"
                 android:text="@string/timing_cw" />
         </LinearLayout>
+
+        <!-- ✅ Jauge de réglage de la course -->
+        <TextView
+            android:id="@+id/tvStroke"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Course : 54 mm"
+            android:textStyle="bold" />
+
+        <SeekBar
+            android:id="@+id/sbStroke"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="140"
+            android:progress="44" />
 
         <Button
             android:id="@+id/btnSave"
