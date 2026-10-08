@@ -29,6 +29,19 @@ class TimingView @JvmOverloads constructor(
         style = Paint.Style.STROKE
         strokeWidth = 4f
     }
+    private val statorPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#795548")
+        style = Paint.Style.FILL
+    }
+    private val statorEdgePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#FFD54F")
+        style = Paint.Style.STROKE
+        strokeWidth = 3f
+    }
+    private val screwPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#B0BEC5")
+        style = Paint.Style.FILL
+    }
     private val markPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.WHITE
         style = Paint.Style.FILL
@@ -52,9 +65,15 @@ class TimingView @JvmOverloads constructor(
         textSize = 22f
         textAlign = Paint.Align.CENTER
     }
+    private val arrowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#4CAF50")
+        style = Paint.Style.STROKE
+        strokeWidth = 5f
+        strokeCap = Paint.Cap.ROUND
+    }
 
     private var angle = 20f
-    private var clockwise = true
+    private var isAdvancing = true
     private var animatedAngle = 0f
 
     private val animator = ValueAnimator.ofFloat(0f, 360f).apply {
@@ -76,8 +95,8 @@ class TimingView @JvmOverloads constructor(
         invalidate()
     }
 
-    fun setDirection(cw: Boolean) {
-        clockwise = cw
+    fun setAdvancing(advancing: Boolean) {
+        isAdvancing = advancing
         invalidate()
     }
 
@@ -94,64 +113,105 @@ class TimingView @JvmOverloads constructor(
 
         canvas.drawRect(0f, 0f, w, h, bgPaint)
 
-        val flywheelCx = w / 2
-        val flywheelCy = h * 0.35f
-        val flywheelR = minOf(w, h) * 0.22f
+        val cx = w / 2
+        val cy = h * 0.35f
+        val r = minOf(w, h) * 0.22f
 
-        val rotation = if (clockwise) animatedAngle else -animatedAngle
+        // --- Volant magnétique qui tourne (le moteur tourne en horaire) ---
+        val rotation = animatedAngle
 
         canvas.save()
-        canvas.rotate(rotation, flywheelCx, flywheelCy)
-        canvas.drawCircle(flywheelCx, flywheelCy, flywheelR, flywheelPaint)
-        canvas.drawCircle(flywheelCx, flywheelCy, flywheelR, flywheelEdgePaint)
+        canvas.rotate(rotation, cx, cy)
+        canvas.drawCircle(cx, cy, r, flywheelPaint)
+        canvas.drawCircle(cx, cy, r, flywheelEdgePaint)
 
-        val markPaint2 = Paint(markPaint).apply { color = Color.WHITE }
+        // Repère du volant
         canvas.drawRect(
-            flywheelCx - 6f,
-            flywheelCy - flywheelR,
-            flywheelCx + 6f,
-            flywheelCy - flywheelR + 30f,
-            markPaint2
-        )
-
-        val markPaint3 = Paint(markPaint).apply { color = Color.parseColor("#FFD54F") }
-        canvas.drawRect(
-            flywheelCx - 4f,
-            flywheelCy + flywheelR - 30f,
-            flywheelCx + 4f,
-            flywheelCy + flywheelR,
-            markPaint3
+            cx - 6f,
+            cy - r,
+            cx + 6f,
+            cy - r + 30f,
+            markPaint
         )
         canvas.restore()
 
-        val tdcR = flywheelR + 20f
+        // --- Stator qui tourne (avance = antihoraire, retard = horaire) ---
+        val statorRotation = if (isAdvancing) -angle else angle
+        canvas.save()
+        canvas.rotate(statorRotation, cx, cy)
+
+        // Corps du stator
+        val statorR = r * 0.7f
+        canvas.drawCircle(cx, cy, statorR, statorPaint)
+        canvas.drawCircle(cx, cy, statorR, statorEdgePaint)
+
+        // 3 vis sur le stator
+        for (i in 0..2) {
+            val screwAngle = Math.toRadians((i * 120 - 90).toDouble())
+            val sx = cx + (statorR * 0.8f) * kotlin.math.cos(screwAngle).toFloat()
+            val sy = cy + (statorR * 0.8f) * kotlin.math.sin(screwAngle).toFloat()
+            canvas.drawCircle(sx, sy, 8f, screwPaint)
+        }
+
+        // Repère jaune du stator
+        canvas.drawRect(
+            cx - 4f,
+            cy - statorR,
+            cx + 4f,
+            cy - statorR + 25f,
+            statorEdgePaint
+        )
+
+        canvas.restore()
+
+        // Cercle PMH fixe
+        val tdcR = r + 20f
         canvas.drawArc(
-            RectF(flywheelCx - tdcR, flywheelCy - tdcR, flywheelCx + tdcR, flywheelCy + tdcR),
+            RectF(cx - tdcR, cy - tdcR, cx + tdcR, cy + tdcR),
             -90f - 10f,
             20f,
             false,
             tdcPaint
         )
+        canvas.drawText("PMH", cx, cy - tdcR - 10f, labelPaint)
 
-        canvas.drawText("PMH", flywheelCx, flywheelCy - tdcR - 10f, labelPaint)
-
+        // Arc d'avance (orange)
         val advancePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.parseColor("#FF9800")
             style = Paint.Style.STROKE
             strokeWidth = 8f
         }
-        val advanceR = flywheelR + 40f
-        val sweep = if (clockwise) angle else -angle
+        val advanceR = r + 40f
+        val sweep = if (isAdvancing) -angle else angle
         canvas.drawArc(
-            RectF(flywheelCx - advanceR, flywheelCy - advanceR, flywheelCx + advanceR, flywheelCy + advanceR),
+            RectF(cx - advanceR, cy - advanceR, cx + advanceR, cy + advanceR),
             -90f,
             sweep,
             false,
             advancePaint
         )
 
-        canvas.drawText("${angle.toInt()}°", flywheelCx, flywheelCy + tdcR + 50f, textPaint)
+        canvas.drawText("${angle.toInt()}°", cx, cy + tdcR + 50f, textPaint)
 
+        // --- Flèche de rotation du stator ---
+        val arrowRadius = r + 60f
+        val arrowStart = -30f
+        val arrowEnd = if (isAdvancing) -120f else 60f
+        canvas.drawArc(
+            RectF(cx - arrowRadius, cy - arrowRadius, cx + arrowRadius, cy + arrowRadius),
+            arrowStart,
+            arrowEnd - arrowStart,
+            false,
+            arrowPaint
+        )
+
+        // Pointe de la flèche
+        val headAngle = Math.toRadians(arrowEnd.toDouble())
+        val hx = cx + arrowRadius * kotlin.math.cos(headAngle).toFloat()
+        val hy = cy + arrowRadius * kotlin.math.sin(headAngle).toFloat()
+        canvas.drawCircle(hx, hy, 10f, arrowPaint)
+
+        // --- Piston en bas ---
         val pistonCx = w / 2
         val pistonTop = h * 0.65f
         val pistonBottom = h * 0.9f
@@ -188,7 +248,8 @@ class TimingView @JvmOverloads constructor(
         }
         canvas.drawLine(pistonCx, pistonY + 30f, pistonCx, pistonBottom, rodPaint)
 
-        val dirText = if (clockwise) "↻ Horaire (avance)" else "↺ Antihoraire (retard)"
+        // Texte direction
+        val dirText = if (isAdvancing) "↺ Antihoraire (avance)" else "↻ Horaire (retard)"
         canvas.drawText(dirText, w / 2, h - 20f, labelPaint)
     }
 }
