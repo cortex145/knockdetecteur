@@ -18,6 +18,11 @@ class TimingView @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
+    companion object {
+        /** Course totale du piston dans l'animation, en millimètres. */
+        const val COURSE_MM = 100.0
+    }
+
     private val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.parseColor("#1A1A2E")
         style = Paint.Style.FILL
@@ -62,6 +67,12 @@ class TimingView @JvmOverloads constructor(
         textSize = 28f
         textAlign = Paint.Align.CENTER
     }
+    private val infoPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#4CAF50")
+        textSize = 32f
+        textAlign = Paint.Align.CENTER
+        isFakeBoldText = true
+    }
     private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.parseColor("#FFD54F")
         textSize = 22f
@@ -73,18 +84,60 @@ class TimingView @JvmOverloads constructor(
         strokeWidth = 5f
         strokeCap = Paint.Cap.ROUND
     }
+    private val sparkPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.YELLOW
+        style = Paint.Style.FILL
+    }
 
     private var angle = 20f
     private var isCw = true
     private var animatedAngle = 0f
+
+    private var sparkFlashAlpha = 0f
+    private var sparkFlashedThisCycle = false
+    private var lastAnimatedAngle = 0f
+
+    private var pistonPosMm = 0.0
 
     private val animator = ValueAnimator.ofFloat(0f, 360f).apply {
         duration = 3000
         repeatCount = ValueAnimator.INFINITE
         interpolator = LinearInterpolator()
         addUpdateListener {
-            animatedAngle = it.animatedValue as Float
+            val newAngle = it.animatedValue as Float
+
+            val sparkPosition = if (isCw) (360f - angle) % 360f else angle
+            val crossed = crossedValue(lastAnimatedAngle, newAngle, sparkPosition)
+            if (crossed && !sparkFlashedThisCycle) {
+                sparkFlashAlpha = 1f
+                sparkFlashedThisCycle = true
+            }
+
+            if (newAngle < lastAnimatedAngle && newAngle < 10f) {
+                sparkFlashedThisCycle = false
+            }
+
+            lastAnimatedAngle = newAngle
+            animatedAngle = newAngle
+
+            val angleFromTdc = if (isCw) newAngle else (360f - newAngle) % 360f
+            val radFromTdc = Math.toRadians(angleFromTdc.toDouble())
+            pistonPosMm = (COURSE_MM / 2.0) * (1.0 - cos(radFromTdc))
+
+            if (sparkFlashAlpha > 0f) {
+                sparkFlashAlpha -= 0.04f
+                if (sparkFlashAlpha < 0f) sparkFlashAlpha = 0f
+            }
+
             invalidate()
+        }
+    }
+
+    private fun crossedValue(from: Float, to: Float, target: Float): Boolean {
+        return if (from <= to) {
+            target in from..to
+        } else {
+            target >= from || target <= to
         }
     }
 
@@ -99,6 +152,7 @@ class TimingView @JvmOverloads constructor(
 
     fun setClockwise(cw: Boolean) {
         isCw = cw
+        sparkFlashedThisCycle = false
         invalidate()
     }
 
@@ -115,11 +169,13 @@ class TimingView @JvmOverloads constructor(
 
         canvas.drawRect(0f, 0f, w, h, bgPaint)
 
-        val cx = w / 2
-        val cy = h * 0.35f
-        val r = minOf(w, h) * 0.22f
+        val posText = "Piston : %.1f mm / %.0f mm".format(pistonPosMm, COURSE_MM)
+        canvas.drawText(posText, w / 2, 40f, infoPaint)
 
-        // === Volant magnétique : rotation moteur ===
+        val cx = w / 2
+        val cy = h * 0.42f
+        val r = minOf(w, h) * 0.20f
+
         val rotation = if (isCw) animatedAngle else -animatedAngle
 
         canvas.save()
@@ -129,7 +185,6 @@ class TimingView @JvmOverloads constructor(
         canvas.drawRect(cx - 6f, cy - r, cx + 6f, cy - r + 30f, markPaint)
         canvas.restore()
 
-        // === Stator : rotation inverse (avance / retard) ===
         val statorRotation = if (isCw) -angle else angle
         canvas.save()
         canvas.rotate(statorRotation, cx, cy)
@@ -148,7 +203,6 @@ class TimingView @JvmOverloads constructor(
         canvas.drawRect(cx - 4f, cy - statorR, cx + 4f, cy - statorR + 25f, statorEdgePaint)
         canvas.restore()
 
-        // === Cercle PMH fixe ===
         val tdcR = r + 20f
         canvas.drawArc(
             RectF(cx - tdcR, cy - tdcR, cx + tdcR, cy + tdcR),
@@ -156,7 +210,23 @@ class TimingView @JvmOverloads constructor(
         )
         canvas.drawText("PMH", cx, cy - tdcR - 10f, labelPaint)
 
-        // === Arc d'avance ===
+        val sparkPosition = if (isCw) (360f - angle) % 360f else angle
+        val sparkRad = Math.toRadians((sparkPosition - 90).toDouble())
+        val sparkX = cx + (r + 30f) * cos(sparkRad).toFloat()
+        val sparkY = cy + (r + 30f) * sin(sparkRad).toFloat()
+
+        if (sparkFlashAlpha > 0f) {
+            val haloPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.YELLOW
+                alpha = (sparkFlashAlpha * 200).toInt()
+                style = Paint.Style.FILL
+            }
+            canvas.drawCircle(sparkX, sparkY, 25f * sparkFlashAlpha, haloPaint)
+        }
+
+        canvas.drawCircle(sparkX, sparkY, 8f, sparkPaint)
+        canvas.drawText("⚡", sparkX, sparkY - 15f, labelPaint)
+
         val advancePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.parseColor("#FF9800")
             style = Paint.Style.STROKE
@@ -171,23 +241,8 @@ class TimingView @JvmOverloads constructor(
 
         canvas.drawText("${angle.toInt()}°", cx, cy + tdcR + 50f, textPaint)
 
-        // === Flèche de rotation du stator ===
-        val arrowRadius = r + 60f
-        val arrowStart = -30f
-        val arrowEnd = if (isCw) -120f else 60f
-        canvas.drawArc(
-            RectF(cx - arrowRadius, cy - arrowRadius, cx + arrowRadius, cy + arrowRadius),
-            arrowStart, arrowEnd - arrowStart, false, arrowPaint
-        )
-
-        val headAngle = Math.toRadians(arrowEnd.toDouble())
-        val hx = cx + arrowRadius * cos(headAngle).toFloat()
-        val hy = cy + arrowRadius * sin(headAngle).toFloat()
-        canvas.drawCircle(hx, hy, 10f, arrowPaint)
-
-        // === Piston synchronisé avec le repère du volant ===
         val pistonCx = w / 2
-        val pistonTop = h * 0.62f
+        val pistonTop = h * 0.68f
         val pistonBottom = h * 0.92f
         val pistonWidth = w * 0.3f
 
@@ -204,16 +259,9 @@ class TimingView @JvmOverloads constructor(
         )
         canvas.drawRoundRect(cylinderRect, 10f, 10f, cylinderPaint)
 
-        // ✅ Position du piston calculée à partir de l'angle RÉEL du repère du volant
-        // Le repère pointe en haut à animatedAngle = 0 (ou 360), en bas à 180
-        // On utilise la projection verticale du repère : repère en haut => piston en haut
-        val markAngleRad = Math.toRadians(animatedAngle.toDouble())
-        // verticalFactor : 1 quand repère en haut (cos=1), -1 quand repère en bas (cos=-1)
-        val verticalFactor = cos(markAngleRad).toFloat() // +1 en haut, -1 en bas
-        // course du piston : 0 (haut) à 1 (bas)
-        val strokeFactor = (1f - verticalFactor) / 2f // 0 en haut, 1 en bas
-        val stroke = pistonBottom - pistonTop - 60f // hauteur de course réelle
-        val pistonY = pistonTop + strokeFactor * stroke
+        val strokeVisual = pistonBottom - pistonTop - 60f
+        val strokeFactor = (pistonPosMm / COURSE_MM).toFloat()
+        val pistonY = pistonTop + strokeFactor * strokeVisual
 
         val pistonRect = RectF(
             pistonCx - pistonWidth / 2,
@@ -229,7 +277,6 @@ class TimingView @JvmOverloads constructor(
         }
         canvas.drawLine(pistonCx, pistonY + 30f, pistonCx, pistonBottom + 20f, rodPaint)
 
-        // Texte direction
         val dirText = if (isCw) "↻ Moteur horaire  |  Avance antihoraire"
                       else "↺ Moteur antihoraire  |  Avance horaire"
         canvas.drawText(dirText, w / 2, h - 20f, labelPaint)
