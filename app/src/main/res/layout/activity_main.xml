@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:background="#111111">
+
+    <TextView
+        android:id="@+id/tvStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Appuyez sur Démarrer"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        android:gravity="center" />
+
+    <com.example.knockdetector.SpectrumView
+        android:id="@+id/spectrumView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="8dp"
+        android:background="#000000" />
+
+    <TextView
+        android:id="@+id/tvCounter"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Cliquetis détectés : 0"
+        android:textColor="#FF4444"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginTop="8dp" />
+
+    <TextView
+        android:id="@+id/tvInfo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textColor="#AAAAAA"
+        android:textSize="11sp"
+        android:gravity="center" />
+
+    <TextView
+        android:id="@+id/lblSens"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Sensibilité : 3.0"
+        android:textColor="#FFFFFF"
+        android:textSize="13sp"
+        android:layout_marginTop="8dp" />
+    <SeekBar
+        android:id="@+id/sbSens"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:max="100"
+        android:progress="30" />
+
+    <TextView
+        android:id="@+id/lblFmin"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Fréquence basse : 5500 Hz"
+        android:textColor="#FFFFFF"
+        android:textSize="13sp" />
+    <SeekBar
+        android:id="@+id/sbFmin"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:max="100"
+        android:progress="55" />
+
+    <TextView
+        android:id="@+id/lblFmax"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Fréquence haute : 7500 Hz"
+        android:textColor="#FFFFFF"
+        android:textSize="13sp" />
+    <SeekBar
+        android:id="@+id/sbFmax"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:max="100"
+        android:progress="75" />
+
+    <TextView
+        android:id="@+id/lblCooldown"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Anti-rebond : 150 ms"
+        android:textColor="#FFFFFF"
+        android:textSize="13sp" />
+    <SeekBar
+        android:id="@+id/sbCooldown"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:max="100"
+        android:progress="15" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="4dp">
+
+        <Button
+            android:id="@+id/btnStart"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Démarrer" />
+
+        <Button
+            android:id="@+id/btnStop"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Arrêter"
+            android:enabled="false" />
+
+        <Button
+            android:id="@+id/btnReset"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Reset" />
+    </LinearLayout>
+</LinearLayout>
