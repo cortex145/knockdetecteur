@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">CortexKnock</string>
-    <string name="knock_counter">Nobres de Cliqueti : </string>
+    <string name="knock_counter">Nbrs de Cliquetis : </string>
     <string name="listening">Analyse en cours…</string>
     <string name="stopped">Arrêté</string>
     <string name="knock_detected">🔨 Cliqueti détectée !</string>
@@ -12,5 +12,5 @@
     <string name="freq_basse">Fréquence basse : %d Hz</string>
     <string name="freq_haute">Fréquence haute : %d Hz</string>
     <string name="anti_rebond">Anti-doublons : %d ms</string>
-    <string name="powered_by">Cortex powered</string>
+    <string name="powered_by">:+:Cortex powered :+.></string>
 </resources>
