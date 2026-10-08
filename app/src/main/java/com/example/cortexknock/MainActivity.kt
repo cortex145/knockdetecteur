@@ -13,7 +13,7 @@ import androidx.core.content.ContextCompat
 import be.tarsos.dsp.AudioDispatcher
 import be.tarsos.dsp.AudioEvent
 import be.tarsos.dsp.AudioProcessor
-import be.tarsos.dsp.io.jvm.AudioDispatcherFactory
+import be.tarsos.dsp.io.android.AudioDispatcherFactory
 import be.tarsos.dsp.util.fft.FFT
 import kotlin.math.cos
 
@@ -52,13 +52,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d(TAG, "onCreate: démarrage de l'appli")
-
-        try {
-            setContentView(R.layout.activity_main)
-        } catch (e: Throwable) {
-            Log.e(TAG, "Erreur setContentView", e)
-            throw e
-        }
+        setContentView(R.layout.activity_main)
 
         tvStatus = findViewById(R.id.tvStatus)
         tvCounter = findViewById(R.id.tvCounter)
