@@ -19,8 +19,7 @@ class TimingView @JvmOverloads constructor(
 ) : View(context, attrs, defStyleAttr) {
 
     companion object {
-        /** Course totale du piston (YZ 125), en millimètres. */
-        const val COURSE_MM = 54.0
+        const val DEFAULT_COURSE_MM = 54.0
     }
 
     private val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -69,7 +68,7 @@ class TimingView @JvmOverloads constructor(
     }
     private val infoPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.parseColor("#4CAF50")
-        textSize = 32f
+        textSize = 30f
         textAlign = Paint.Align.CENTER
         isFakeBoldText = true
     }
@@ -93,14 +92,13 @@ class TimingView @JvmOverloads constructor(
     private var isCw = true
     private var animatedAngle = 0f
 
+    /** Course réglable via la jauge externe. */
+    private var courseMm = DEFAULT_COURSE_MM
+
     private var sparkFlashAlpha = 0f
     private var sparkFlashedThisCycle = false
     private var lastAnimatedAngle = 0f
 
-    /**
-     * Position du piston au moment de l'étincelle (mm depuis le PMH).
-     * Ne change que quand on modifie l'angle d'avance.
-     */
     private var pistonPosAtSparkMm = 0.0
 
     private val animator = ValueAnimator.ofFloat(0f, 360f).apply {
@@ -143,14 +141,24 @@ class TimingView @JvmOverloads constructor(
 
     init {
         animator.start()
+        recalcPistonAtSpark()
     }
 
     fun setAngle(deg: Int) {
         angle = deg.toFloat()
-        // ✅ Calcul de la position du piston AU MOMENT DE L'ÉTINCELLE
-        val rad = Math.toRadians(angle.toDouble())
-        pistonPosAtSparkMm = (COURSE_MM / 2.0) * (1.0 - cos(rad))
+        recalcPistonAtSpark()
         invalidate()
+    }
+
+    fun setCourse(course: Double) {
+        courseMm = course
+        recalcPistonAtSpark()
+        invalidate()
+    }
+
+    private fun recalcPistonAtSpark() {
+        val rad = Math.toRadians(angle.toDouble())
+        pistonPosAtSparkMm = (courseMm / 2.0) * (1.0 - cos(rad))
     }
 
     fun setClockwise(cw: Boolean) {
@@ -172,7 +180,6 @@ class TimingView @JvmOverloads constructor(
 
         canvas.drawRect(0f, 0f, w, h, bgPaint)
 
-        // ✅ Affichage de la position du piston à l'étincelle (fixe)
         val posText = "Piston à l'étincelle : %.1f mm avant PMH".format(pistonPosAtSparkMm)
         canvas.drawText(posText, w / 2, 40f, infoPaint)
 
@@ -245,7 +252,6 @@ class TimingView @JvmOverloads constructor(
 
         canvas.drawText("${angle.toInt()}°", cx, cy + tdcR + 50f, textPaint)
 
-        // === Piston animé (position instantanée selon la rotation) ===
         val pistonCx = w / 2
         val pistonTop = h * 0.68f
         val pistonBottom = h * 0.92f
@@ -264,13 +270,12 @@ class TimingView @JvmOverloads constructor(
         )
         canvas.drawRoundRect(cylinderRect, 10f, 10f, cylinderPaint)
 
-        // Position instantanée du piston (pour l'animation visuelle)
         val angleFromTdc = if (isCw) animatedAngle else (360f - animatedAngle) % 360f
         val radFromTdc = Math.toRadians(angleFromTdc.toDouble())
-        val instantPosMm = (COURSE_MM / 2.0) * (1.0 - cos(radFromTdc))
+        val instantPosMm = (courseMm / 2.0) * (1.0 - cos(radFromTdc))
 
         val strokeVisual = pistonBottom - pistonTop - 60f
-        val strokeFactor = (instantPosMm / COURSE_MM).toFloat()
+        val strokeFactor = (instantPosMm / courseMm).toFloat()
         val pistonY = pistonTop + strokeFactor * strokeVisual
 
         val pistonRect = RectF(
