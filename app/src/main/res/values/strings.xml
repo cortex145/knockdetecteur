@@ -12,6 +12,13 @@
     <string name="freq_basse">Fréquence basse : %d Hz</string>
     <string name="freq_haute">Fréquence haute : %d Hz</string>
     <string name="anti_rebond">Anti-doublons : %d ms</string>
-    <string name="powered_by">:+:Cortex powered :+.></string>
+    <string name="powered_by">:+:Cortex powered :+:</string>
     <string name="note">lancer le soft apres avoir demarre</string>
+
+    <!-- ✅ Chaînes pour le bouton de calibrage cylindre -->
+    <string name="calibrate_cylinder">Calibrer cylindre</string>
+    <string name="dialog_bore_title">Alésage du cylindre</string>
+    <string name="dialog_bore_message">Entrez le diamètre du piston en mm (ex : 54 pour un YZ 125)</string>
+    <string name="dialog_ok">Calculer</string>
+    <string name="dialog_cancel">Annuler</string>
 </resources>
