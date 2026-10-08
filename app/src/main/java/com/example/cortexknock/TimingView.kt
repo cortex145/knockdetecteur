@@ -77,7 +77,6 @@ class TimingView @JvmOverloads constructor(
     private var angle = 20f
     private var isCw = true
     private var animatedAngle = 0f
-    private var pistonOffsetY = 0f
 
     private val animator = ValueAnimator.ofFloat(0f, 360f).apply {
         duration = 3000
@@ -85,9 +84,6 @@ class TimingView @JvmOverloads constructor(
         interpolator = LinearInterpolator()
         addUpdateListener {
             animatedAngle = it.animatedValue as Float
-            // ✅ CORRIGÉ : signe inversé pour que le piston monte quand le repère est en haut
-            val rad = Math.toRadians(animatedAngle.toDouble())
-            pistonOffsetY = (-cos(rad) * 25).toFloat()
             invalidate()
         }
     }
@@ -123,7 +119,7 @@ class TimingView @JvmOverloads constructor(
         val cy = h * 0.35f
         val r = minOf(w, h) * 0.22f
 
-        // === Volant magnétique : tourne dans le sens choisi ===
+        // === Volant magnétique : rotation moteur ===
         val rotation = if (isCw) animatedAngle else -animatedAngle
 
         canvas.save()
@@ -133,7 +129,7 @@ class TimingView @JvmOverloads constructor(
         canvas.drawRect(cx - 6f, cy - r, cx + 6f, cy - r + 30f, markPaint)
         canvas.restore()
 
-        // === Stator : tourne dans le sens INVERSE ===
+        // === Stator : rotation inverse (avance / retard) ===
         val statorRotation = if (isCw) -angle else angle
         canvas.save()
         canvas.rotate(statorRotation, cx, cy)
@@ -189,7 +185,7 @@ class TimingView @JvmOverloads constructor(
         val hy = cy + arrowRadius * sin(headAngle).toFloat()
         canvas.drawCircle(hx, hy, 10f, arrowPaint)
 
-        // === Piston synchronisé avec le moteur ===
+        // === Piston synchronisé avec le repère du volant ===
         val pistonCx = w / 2
         val pistonTop = h * 0.62f
         val pistonBottom = h * 0.92f
@@ -208,8 +204,16 @@ class TimingView @JvmOverloads constructor(
         )
         canvas.drawRoundRect(cylinderRect, 10f, 10f, cylinderPaint)
 
-        // ✅ CORRIGÉ : signe inversé pour la position du piston
-        val pistonY = pistonTop - pistonOffsetY + 25f
+        // ✅ Position du piston calculée à partir de l'angle RÉEL du repère du volant
+        // Le repère pointe en haut à animatedAngle = 0 (ou 360), en bas à 180
+        // On utilise la projection verticale du repère : repère en haut => piston en haut
+        val markAngleRad = Math.toRadians(animatedAngle.toDouble())
+        // verticalFactor : 1 quand repère en haut (cos=1), -1 quand repère en bas (cos=-1)
+        val verticalFactor = cos(markAngleRad).toFloat() // +1 en haut, -1 en bas
+        // course du piston : 0 (haut) à 1 (bas)
+        val strokeFactor = (1f - verticalFactor) / 2f // 0 en haut, 1 en bas
+        val stroke = pistonBottom - pistonTop - 60f // hauteur de course réelle
+        val pistonY = pistonTop + strokeFactor * stroke
 
         val pistonRect = RectF(
             pistonCx - pistonWidth / 2,
@@ -223,7 +227,7 @@ class TimingView @JvmOverloads constructor(
             color = Color.parseColor("#B0BEC5")
             strokeWidth = 8f
         }
-        canvas.drawLine(pistonCx, pistonY + 30f, pistonCx, pistonBottom, rodPaint)
+        canvas.drawLine(pistonCx, pistonY + 30f, pistonCx, pistonBottom + 20f, rodPaint)
 
         // Texte direction
         val dirText = if (isCw) "↻ Moteur horaire  |  Avance antihoraire"
