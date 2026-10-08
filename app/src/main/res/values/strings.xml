@@ -21,4 +21,58 @@
     <string name="dialog_bore_message">Entrez le diamètre du piston en mm (ex : 54 pour un YZ 125)</string>
     <string name="dialog_ok">Calculer</string>
     <string name="dialog_cancel">Annuler</string>
+
+    <!-- ✅ Bouton et texte d'aide -->
+    <string name="help">Aide</string>
+    <string name="help_title">Mode d\'emploi — CortexKnock</string>
+    <string name="help_content">
+📖 UTILISATION\n
+\n
+1. Démarre ton moteur et laisse-le chauffer.\n
+2. Ouvre CortexKnock et appuie sur "Start".\n
+3. Autorise l\'accès au micro si demandé.\n
+4. Approche le téléphone à ~30 cm du moteur.\n
+5. Le compteur augmente à chaque cliquetis détecté.\n
+\n
+🎯 CALIBRATION\n
+\n
+- Appuie sur "Calibrer cylindre".\n
+- Entre l\'alésage en mm (ex : 54 pour un YZ 125).\n
+- L\'appli calcule la fréquence automatiquement.\n
+- Ajuste ensuite manuellement si besoin.\n
+\n
+📊 VÉRIFICATION EN DIRECT\n
+\n
+- Regarde le spectre en bas de l\'écran.\n
+- Le pic d\'énergie = fréquence du cliquetis.\n
+- Encadre ce pic avec les curseurs de fréquence.\n
+\n
+⚙️ RÉGLAGES\n
+\n
+SENSIBILITÉ :\n
+- Basse (3) = détecte tout (faux positifs possibles).\n
+- Haute (7) = détecte seulement les vrais cliquetis.\n
+\n
+FRÉQUENCE BASSE / HAUTE :\n
+- Zone d\'écoute du cliquetis.\n
+- Pour un YZ 125 : ~5000 à 7000 Hz.\n
+\n
+ANTI-DOUBLONS :\n
+- 50 ms = cliquetis rapides comptés séparément.\n
+- 200 ms = évite de compter plusieurs fois le même.\n
+\n
+💡 CONSEILS\n
+\n
+- Moteur chaud = cliquetis plus audible.\n
+- Éloigne le téléphone du pot d\'échappement.\n
+- Un YZ 125 cliquette surtout à mi-régime.\n
+- Si trop de faux positifs : monte la sensibilité.\n
+- Si rien détecté : baisse la sensibilité.\n
+\n
+⚠️ ATTENTION\n
+\n
+Cet outil est une aide au diagnostic.\n
+Il ne remplace pas l\'avis d\'un mécanicien.\n
+Ne fais jamais tourner le moteur dans un lieu clos.\n
+    </string>
 </resources>
