@@ -42,8 +42,8 @@ class MainActivity : AppCompatActivity() {
     private val bufferSize = 1024
     private val overlap = 512
 
-    @Volatile private var knockFreqMin = 5500.0
-    @Volatile private var knockFreqMax = 7500.0
+    @Volatile private var knockFreqMin = 7500.0
+    @Volatile private var knockFreqMax = 8500.0
     @Volatile private var thresholdFactor = 3.0
     @Volatile private var knockCooldownMs = 150L
 
