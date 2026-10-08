@@ -15,6 +15,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import be.tarsos.dsp.AudioEvent
 import be.tarsos.dsp.AudioProcessor
+import be.tarsos.dsp.io.TarsosDSPAudioFormat
 import be.tarsos.dsp.util.fft.FFT
 import kotlin.math.cos
 
@@ -50,8 +51,16 @@ class MainActivity : AppCompatActivity() {
     private var knockCounter = 0
     private var lastKnockTime = 0L
 
-    // Processor FFT unique, réutilisé à chaque bloc
     private val fftProcessor = FFTProcessor()
+
+    // Format audio réutilisé pour les AudioEvent
+    private val audioFormat = TarsosDSPAudioFormat(
+        sampleRate.toFloat(),
+        16,
+        1,
+        true,
+        false
+    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -176,7 +185,6 @@ class MainActivity : AppCompatActivity() {
                 while (isRunning) {
                     val read = audioRecord?.read(shortBuffer, 0, bufferSize) ?: 0
                     if (read <= 0) {
-                        // Rien lu, on attend un peu et on retente
                         try { Thread.sleep(10) } catch (_: InterruptedException) {}
                         continue
                     }
@@ -186,16 +194,10 @@ class MainActivity : AppCompatActivity() {
                         floatBuffer[i] = shortBuffer[i] / 32768.0f
                     }
 
-                    // Construire un AudioEvent et l'envoyer au processor
+                    // Construire un AudioEvent compatible TarsosDSP 2.5
                     try {
-                        val event = AudioEvent(
-                            floatBuffer,
-                            sampleRate.toFloat(),
-                            bufferSize,
-                            overlap,
-                            -1.0,
-                            -1
-                        )
+                        val event = AudioEvent(audioFormat)
+                        event.setFloatBuffer(floatBuffer)
                         fftProcessor.process(event)
                     } catch (e: Throwable) {
                         Log.e(TAG, "Erreur traitement audio", e)
@@ -258,7 +260,6 @@ class MainActivity : AppCompatActivity() {
         override fun process(audioEvent: AudioEvent): Boolean {
             val buffer = audioEvent.floatBuffer
 
-            // Fenêtrage de Hann
             for (i in buffer.indices) {
                 val w = 0.5 * (1.0 - cos(2.0 * Math.PI * i / (buffer.size - 1)))
                 buffer[i] *= w.toFloat()
