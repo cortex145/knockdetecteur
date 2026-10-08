@@ -176,7 +176,7 @@ class MainActivity : AppCompatActivity() {
      */
     private fun applyBoreCalibration(boreMm: Double) {
         val boreM = boreMm / 1000.0
-        val frequency = 3.0 * VITESSE_SON / (PI * boreM)
+        val frequency = 4.0 * VITESSE_SON / (PI * boreM)
 
         val fmin = (frequency * 0.85).coerceAtLeast(2000.0)
         val fmax = (frequency * 1.15).coerceAtMost(12000.0)
