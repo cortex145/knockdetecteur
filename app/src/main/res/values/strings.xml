@@ -15,14 +15,12 @@
     <string name="powered_by">:+:Cortex powered :+:</string>
     <string name="note">lancer le soft apres avoir demarre</string>
 
-    <!-- ✅ Chaînes pour le bouton de calibrage cylindre -->
     <string name="calibrate_cylinder">Calibrer cylindre</string>
     <string name="dialog_bore_title">Alésage du cylindre</string>
     <string name="dialog_bore_message">Entrez le diamètre du piston en mm (ex : 54 pour un YZ 125)</string>
     <string name="dialog_ok">Calculer</string>
     <string name="dialog_cancel">Annuler</string>
 
-    <!-- ✅ Bouton et texte d'aide -->
     <string name="help">Aide</string>
     <string name="help_title">Mode d\'emploi — CortexKnock</string>
     <string name="help_content">
@@ -39,40 +37,32 @@
 - Appuie sur "Calibrer cylindre".\n
 - Entre l\'alésage en mm (ex : 54 pour un YZ 125).\n
 - L\'appli calcule la fréquence automatiquement.\n
-- Ajuste ensuite manuellement si besoin.\n
-\n
-📊 VÉRIFICATION EN DIRECT\n
-\n
-- Regarde le spectre en bas de l\'écran.\n
-- Le pic d\'énergie = fréquence du cliquetis.\n
-- Encadre ce pic avec les curseurs de fréquence.\n
-\n
-⚙️ RÉGLAGES\n
-\n
-SENSIBILITÉ :\n
-- Basse (3) = détecte tout (faux positifs possibles).\n
-- Haute (7) = détecte seulement les vrais cliquetis.\n
-\n
-FRÉQUENCE BASSE / HAUTE :\n
-- Zone d\'écoute du cliquetis.\n
-- Pour un YZ 125 : ~5000 à 7000 Hz.\n
-\n
-ANTI-DOUBLONS :\n
-- 50 ms = cliquetis rapides comptés séparément.\n
-- 200 ms = évite de compter plusieurs fois le même.\n
 \n
 💡 CONSEILS\n
 \n
 - Moteur chaud = cliquetis plus audible.\n
 - Éloigne le téléphone du pot d\'échappement.\n
-- Un YZ 125 cliquette surtout à mi-régime.\n
 - Si trop de faux positifs : monte la sensibilité.\n
 - Si rien détecté : baisse la sensibilité.\n
-\n
-⚠️ ATTENTION\n
-\n
-Cet outil est une aide au diagnostic.\n
-Il ne remplace pas l\'avis d\'un mécanicien.\n
-Ne fais jamais tourner le moteur dans un lieu clos.\n
     </string>
+
+    <string name="open_timing">Réglage avance allumage</string>
+
+    <!-- ✅ Timing Activity -->
+    <string name="timing_title">Réglage avance à l\'allumage</string>
+    <string name="timing_angle">Avance : %d° avant PMH</string>
+    <string name="timing_cw">↻ Horaire (avance)</string>
+    <string name="timing_ccw">↺ Antihoraire (retard)</string>
+    <string name="timing_save">💾 Sauvegarder le réglage</string>
+    <string name="timing_saved">Réglage sauvegardé à %d°</string>
+
+    <!-- ✅ Boutons de ressenti -->
+    <string name="feel_bien">👍 Bien</string>
+    <string name="feel_moyen">👌 Moyen</string>
+    <string name="feel_max">🔥 Max</string>
+    <string name="feel_saved">Ressenti enregistré : %s à %d°</string>
+    <string name="feel_history">Historique des réglages</string>
+    <string name="feel_empty">Aucun réglage enregistré pour le moment.</string>
+    <string name="feel_clear">Effacer l\'historique</string>
+    <string name="feel_cleared">Historique effacé</string>
 </resources>
