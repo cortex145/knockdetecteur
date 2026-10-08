@@ -6,7 +6,6 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.util.AttributeSet
 import android.view.View
-import kotlin.math.log10
 
 class SpectrumView @JvmOverloads constructor(
     context: Context,
@@ -14,69 +13,67 @@ class SpectrumView @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
-    private val paint = Paint().apply {
-        isAntiAlias = true
+    private val barPaint = Paint().apply {
+        color = Color.CYAN
+        strokeWidth = 2f
     }
 
-    private var amplitudes = FloatArray(0)
-    private var sampleRate = 44100
-    private var bufferSize = 1024
-    private var knockFreqMin = 5500.0
-    private var knockFreqMax = 7500.0
+    private val bandPaint = Paint().apply {
+        color = Color.argb(60, 255, 80, 80)
+        style = Paint.Style.FILL
+    }
+
+    private var amplitudes: FloatArray = FloatArray(0)
+    private var sampleRate: Int = 44100
+    private var bufferSize: Int = 1024
+
+    private var knockMinHz: Double = 5500.0
+    private var knockMaxHz: Double = 7500.0
+
+    fun setKnockBand(minHz: Double, maxHz: Double) {
+        knockMinHz = minHz
+        knockMaxHz = maxHz
+        postInvalidate()
+    }
+
+    fun updateSpectrum(spectrum: FloatArray, sampleRate: Int, bufferSize: Int) {
+        this.amplitudes = spectrum.copyOf()
+        this.sampleRate = sampleRate
+        this.bufferSize = bufferSize
+        postInvalidate()
+    }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-
-        val width = width.toFloat()
-        val height = height.toFloat()
-
-        paint.color = Color.BLACK
-        canvas.drawRect(0f, 0f, width, height, paint)
+        canvas.drawColor(Color.BLACK)
 
         if (amplitudes.isEmpty()) return
 
-        val binWidth = sampleRate.toDouble() / bufferSize.toDouble()
-        val startBin = (knockFreqMin / binWidth).toInt().coerceIn(0, amplitudes.size - 1)
-        val endBin = (knockFreqMax / binWidth).toInt().coerceIn(0, amplitudes.size - 1)
+        val w = width.toFloat()
+        val h = height.toFloat()
+        val n = amplitudes.size
+        val binWidth = sampleRate.toDouble() / bufferSize
 
-        paint.color = Color.GREEN
-        paint.strokeWidth = 2f
+        // Zone de la bande de frappe
+        val startX = ((knockMinHz / (binWidth * n)) * w).toFloat().coerceIn(0f, w)
+        val endX = ((knockMaxHz / (binWidth * n)) * w).toFloat().coerceIn(0f, w)
+        canvas.drawRect(startX, 0f, endX, h, bandPaint)
 
-        val pixelWidth = width / amplitudes.size.toFloat()
-        for (i in amplitudes.indices) {
-            val x = (i * pixelWidth)
-            val magnitude = amplitudes[i].toDouble()
-            val normalizedMagnitude = (log10(magnitude + 1.0) / 5.0).toFloat().coerceIn(0f, 1f)
-            val y = height - (normalizedMagnitude * height)
+        // Barres du spectre
+        val maxAmp = amplitudes.maxOrNull() ?: 1f
+        if (maxAmp <= 0f) return
 
-            if (i == 0) {
-                canvas.drawPoint(x, y, paint)
-            } else {
-                val prevMagnitude = amplitudes[i - 1].toDouble()
-                val prevNormalized = (log10(prevMagnitude + 1.0) / 5.0).toFloat().coerceIn(0f, 1f)
-                val prevY = height - (prevNormalized * height)
-                canvas.drawLine(x - pixelWidth, prevY, x, y, paint)
-            }
+        val barWidth = w / n
+        for (i in 0 until n) {
+            val amp = amplitudes[i] / maxAmp
+            val barH = amp * h
+            canvas.drawLine(
+                i * barWidth,
+                h,
+                i * barWidth,
+                h - barH,
+                barPaint
+            )
         }
-
-        paint.color = Color.RED
-        paint.strokeWidth = 3f
-        val startX = (startBin * pixelWidth)
-        val endX = (endBin * pixelWidth)
-        canvas.drawLine(startX, 0f, startX, height, paint)
-        canvas.drawLine(endX, 0f, endX, height, paint)
-    }
-
-    fun updateSpectrum(amplitudes: FloatArray, sampleRate: Int, bufferSize: Int) {
-        this.amplitudes = amplitudes
-        this.sampleRate = sampleRate
-        this.bufferSize = bufferSize
-        invalidate()
-    }
-
-    fun setKnockBand(minFreq: Double, maxFreq: Double) {
-        this.knockFreqMin = minFreq
-        this.knockFreqMax = maxFreq
-        invalidate()
     }
 }
