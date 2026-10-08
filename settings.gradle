@@ -10,10 +10,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven {
-            url "https://mvn.0110.be/releases"
-        }
+        maven { url 'https://mvn.0110.be/releases' }
     }
 }
-rootProject.name = "KnockDetector"
+rootProject.name = "Cortex Knock"
 include ':app'

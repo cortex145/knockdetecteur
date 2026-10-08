@@ -1,3 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">KnockDetector</string>
+    <string name="app_name">Cortex Knock</string>
+    <string name="btn_start">Démarrer</string>
+    <string name="btn_stop">Arrêter</string>
+    <string name="btn_reset">Réinitialiser</string>
+    <string name="listening">Écoute en cours...</string>
+    <string name="stopped">Arrêté</string>
+    <string name="knock_detected">🔴 CLIQUETIS !</string>
+    <string name="knock_counter">Cliquetis détectés : </string>
 </resources>
