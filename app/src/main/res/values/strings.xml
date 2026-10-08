@@ -38,6 +38,13 @@
 - Entre l\'alésage en mm (ex : 54 pour un YZ 125).\n
 - L\'appli calcule la fréquence automatiquement.\n
 \n
+⚙️ RÉGLAGE AVANCE\n
+\n
+- AVANCE = tourner le stator en ANTIHORAIRE\n
+- RETARD = tourner le stator en HORAIRE\n
+- Max 35° avant PMH pour un 2 temps\n
+- Au-delà : risque de cliquetis et surchauffe\n
+\n
 💡 CONSEILS\n
 \n
 - Moteur chaud = cliquetis plus audible.\n
@@ -48,15 +55,13 @@
 
     <string name="open_timing">Réglage avance allumage</string>
 
-    <!-- ✅ Timing Activity -->
     <string name="timing_title">Réglage avance à l\'allumage</string>
     <string name="timing_angle">Avance : %d° avant PMH</string>
-    <string name="timing_cw">↻ Horaire (avance)</string>
-    <string name="timing_ccw">↺ Antihoraire (retard)</string>
+    <string name="timing_cw">↻ Horaire (retard)</string>
+    <string name="timing_ccw">↺ Antihoraire (avance)</string>
     <string name="timing_save">💾 Sauvegarder le réglage</string>
     <string name="timing_saved">Réglage sauvegardé à %d°</string>
 
-    <!-- ✅ Boutons de ressenti -->
     <string name="feel_bien">👍 Bien</string>
     <string name="feel_moyen">👌 Moyen</string>
     <string name="feel_max">🔥 Max</string>
