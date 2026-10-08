@@ -75,9 +75,9 @@ class TimingView @JvmOverloads constructor(
     }
 
     private var angle = 20f
-    private var isCw = true          // true = horaire, false = antihoraire
+    private var isCw = true
     private var animatedAngle = 0f
-    private var pistonOffsetY = 0f   // position verticale du piston
+    private var pistonOffsetY = 0f
 
     private val animator = ValueAnimator.ofFloat(0f, 360f).apply {
         duration = 3000
@@ -85,9 +85,9 @@ class TimingView @JvmOverloads constructor(
         interpolator = LinearInterpolator()
         addUpdateListener {
             animatedAngle = it.animatedValue as Float
-            // Synchronisation du piston : haut quand angle=0, bas quand angle=180
+            // ✅ CORRIGÉ : signe inversé pour que le piston monte quand le repère est en haut
             val rad = Math.toRadians(animatedAngle.toDouble())
-            pistonOffsetY = (cos(rad) * 25).toFloat()  // -25 en haut, +25 en bas
+            pistonOffsetY = (-cos(rad) * 25).toFloat()
             invalidate()
         }
     }
@@ -123,19 +123,17 @@ class TimingView @JvmOverloads constructor(
         val cy = h * 0.35f
         val r = minOf(w, h) * 0.22f
 
-        // === Volant magnétique : tourne dans le sens choisi (moteur) ===
+        // === Volant magnétique : tourne dans le sens choisi ===
         val rotation = if (isCw) animatedAngle else -animatedAngle
 
         canvas.save()
         canvas.rotate(rotation, cx, cy)
         canvas.drawCircle(cx, cy, r, flywheelPaint)
         canvas.drawCircle(cx, cy, r, flywheelEdgePaint)
-
-        // Repère du volant
         canvas.drawRect(cx - 6f, cy - r, cx + 6f, cy - r + 30f, markPaint)
         canvas.restore()
 
-        // === Stator : tourne dans le sens INVERSE (avance) ===
+        // === Stator : tourne dans le sens INVERSE ===
         val statorRotation = if (isCw) -angle else angle
         canvas.save()
         canvas.rotate(statorRotation, cx, cy)
@@ -162,7 +160,7 @@ class TimingView @JvmOverloads constructor(
         )
         canvas.drawText("PMH", cx, cy - tdcR - 10f, labelPaint)
 
-        // === Arc d'avance (orange) ===
+        // === Arc d'avance ===
         val advancePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.parseColor("#FF9800")
             style = Paint.Style.STROKE
@@ -210,8 +208,8 @@ class TimingView @JvmOverloads constructor(
         )
         canvas.drawRoundRect(cylinderRect, 10f, 10f, cylinderPaint)
 
-        // Position piston synchronisée avec la rotation du moteur
-        val pistonY = pistonTop + pistonOffsetY + 25f  // 0..50 selon cos
+        // ✅ CORRIGÉ : signe inversé pour la position du piston
+        val pistonY = pistonTop - pistonOffsetY + 25f
 
         val pistonRect = RectF(
             pistonCx - pistonWidth / 2,
