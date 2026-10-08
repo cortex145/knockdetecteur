@@ -3,11 +3,13 @@ package com.example.cortexknock
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.util.Log
 import android.widget.Button
 import android.widget.SeekBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import be.tarsos.dsp.AudioDispatcher
 import be.tarsos.dsp.AudioEvent
 import be.tarsos.dsp.AudioProcessor
@@ -17,13 +19,21 @@ import kotlin.math.cos
 
 class MainActivity : AppCompatActivity() {
 
+    companion object {
+        private const val TAG = "CortexKnock"
+        private const val REQ_AUDIO = 1
+    }
+
     private lateinit var tvStatus: TextView
     private lateinit var tvCounter: TextView
     private lateinit var tvInfo: TextView
     private lateinit var spectrumView: SpectrumView
 
+    private lateinit var btnStart: Button
+    private lateinit var btnStop: Button
+
     private var dispatcher: AudioDispatcher? = null
-    private var isRunning = false
+    @Volatile private var isRunning = false
     private var dispatcherThread: Thread? = null
 
     private val sampleRate = 44100
@@ -41,15 +51,26 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        Log.d(TAG, "onCreate: démarrage de l'appli")
+
+        try {
+            setContentView(R.layout.activity_main)
+        } catch (e: Throwable) {
+            Log.e(TAG, "Erreur setContentView", e)
+            throw e
+        }
 
         tvStatus = findViewById(R.id.tvStatus)
         tvCounter = findViewById(R.id.tvCounter)
         tvInfo = findViewById(R.id.tvInfo)
         spectrumView = findViewById(R.id.spectrumView)
+        btnStart = findViewById(R.id.btnStart)
+        btnStop = findViewById(R.id.btnStop)
 
-        findViewById<Button>(R.id.btnStart).setOnClickListener { startListening() }
-        findViewById<Button>(R.id.btnStop).setOnClickListener { stopListening() }
+        tvCounter.text = "${getString(R.string.knock_counter)}0"
+
+        btnStart.setOnClickListener { startListening() }
+        btnStop.setOnClickListener { stopListening() }
         findViewById<Button>(R.id.btnReset).setOnClickListener {
             knockCounter = 0
             tvCounter.text = "${getString(R.string.knock_counter)}0"
@@ -57,10 +78,10 @@ class MainActivity : AppCompatActivity() {
 
         setupSeekBars()
 
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
             != PackageManager.PERMISSION_GRANTED
         ) {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 1)
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), REQ_AUDIO)
         }
     }
 
@@ -79,9 +100,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<SeekBar>(R.id.sbFmin).setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
                 val fmin = 2000.0 + (progress / 100.0) * 8000.0
-                if (fmin < knockFreqMax - 200) {
-                    knockFreqMin = fmin
-                }
+                if (fmin < knockFreqMax - 200) knockFreqMin = fmin
                 lblFmin.text = "Fréquence basse : ${knockFreqMin.toInt()} Hz"
                 spectrumView.setKnockBand(knockFreqMin, knockFreqMax)
             }
@@ -93,9 +112,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<SeekBar>(R.id.sbFmax).setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
                 val fmax = 3000.0 + (progress / 100.0) * 9000.0
-                if (fmax > knockFreqMin + 200) {
-                    knockFreqMax = fmax
-                }
+                if (fmax > knockFreqMin + 200) knockFreqMax = fmax
                 lblFmax.text = "Fréquence haute : ${knockFreqMax.toInt()} Hz"
                 spectrumView.setKnockBand(knockFreqMin, knockFreqMax)
             }
@@ -114,35 +131,65 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
+    private fun hasAudioPermission(): Boolean =
+        ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) ==
+            PackageManager.PERMISSION_GRANTED
+
     private fun startListening() {
         if (isRunning) return
+        if (!hasAudioPermission()) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), REQ_AUDIO)
+            return
+        }
+
         try {
             isRunning = true
             tvStatus.text = getString(R.string.listening)
-            findViewById<Button>(R.id.btnStart).isEnabled = false
-            findViewById<Button>(R.id.btnStop).isEnabled = true
+            btnStart.isEnabled = false
+            btnStop.isEnabled = true
 
             dispatcher = AudioDispatcherFactory.fromDefaultMicrophone(sampleRate, bufferSize, overlap)
             dispatcher?.addAudioProcessor(FFTProcessor())
-            dispatcherThread = Thread(dispatcher)
+            dispatcherThread = Thread(dispatcher, "AudioDispatcher")
             dispatcherThread?.start()
-        } catch (e: Exception) {
+            Log.d(TAG, "startListening: dispatcher démarré")
+        } catch (e: Throwable) {
+            Log.e(TAG, "startListening: erreur", e)
             isRunning = false
             tvStatus.text = "Erreur : ${e.message}"
-            findViewById<Button>(R.id.btnStart).isEnabled = true
-            findViewById<Button>(R.id.btnStop).isEnabled = false
+            btnStart.isEnabled = true
+            btnStop.isEnabled = false
         }
     }
 
     private fun stopListening() {
         isRunning = false
-        dispatcher?.stop()
+        try {
+            dispatcher?.stop()
+        } catch (e: Throwable) {
+            Log.e(TAG, "stopListening: erreur stop", e)
+        }
         dispatcher = null
         dispatcherThread?.join(500)
         dispatcherThread = null
         tvStatus.text = getString(R.string.stopped)
-        findViewById<Button>(R.id.btnStart).isEnabled = true
-        findViewById<Button>(R.id.btnStop).isEnabled = false
+        btnStart.isEnabled = true
+        btnStop.isEnabled = false
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQ_AUDIO) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Log.d(TAG, "Permission micro accordée")
+            } else {
+                tvStatus.text = "Permission micro refusée"
+            }
+        }
     }
 
     inner class FFTProcessor : AudioProcessor {
