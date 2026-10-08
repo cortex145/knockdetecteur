@@ -24,8 +24,10 @@ jobs:
           java-version: '17'
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v3
-
+      - uses: gradle/actions/setup-gradle@v4
+  with:
+    cache-disabled: true
+    
       - name: Build Debug APK
         run: gradle assembleDebug --no-daemon --stacktrace
 
