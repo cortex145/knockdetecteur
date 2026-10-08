@@ -16,6 +16,7 @@ class TimingActivity : AppCompatActivity() {
         private const val PREFS = "cortex_timing_prefs"
         private const val KEY_ANGLE = "saved_angle"
         private const val KEY_DIRECTION = "saved_direction"
+        private const val KEY_COURSE = "saved_course"
         private const val KEY_HISTORY = "feel_history"
     }
 
@@ -23,9 +24,11 @@ class TimingActivity : AppCompatActivity() {
     private lateinit var tvAngle: TextView
     private lateinit var tvInfo: TextView
     private lateinit var tvHistory: TextView
+    private lateinit var tvStroke: TextView
 
     private var currentAngle = 20
-    private var isCw = true   // true = moteur horaire, false = moteur antihoraire
+    private var isCw = true
+    private var currentCourseMm = 54
     private var lastWarningPlayed = false
 
     private val toneGenerator: ToneGenerator by lazy {
@@ -40,17 +43,25 @@ class TimingActivity : AppCompatActivity() {
         tvAngle = findViewById(R.id.tvAngle)
         tvInfo = findViewById(R.id.tvInfo)
         tvHistory = findViewById(R.id.tvHistory)
+        tvStroke = findViewById(R.id.tvStroke)
 
         val sbAngle = findViewById<SeekBar>(R.id.sbAngle)
         sbAngle.max = 35
 
+        val sbStroke = findViewById<SeekBar>(R.id.sbStroke)
+        sbStroke.max = 140   // 10..150 → progress 0..140
+
         val prefs = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         currentAngle = prefs.getInt(KEY_ANGLE, 20)
         isCw = prefs.getBoolean(KEY_DIRECTION, true)
+        currentCourseMm = prefs.getInt(KEY_COURSE, 54)
 
         sbAngle.progress = currentAngle
+        sbStroke.progress = (currentCourseMm - 10).coerceIn(0, 140)
+
         timingView.setAngle(currentAngle)
         timingView.setClockwise(isCw)
+        timingView.setCourse(currentCourseMm.toDouble())
 
         updateUi()
 
@@ -71,7 +82,16 @@ class TimingActivity : AppCompatActivity() {
             override fun onStopTrackingTouch(sb: SeekBar?) {}
         })
 
-        // Moteur HORAIRE → avance ANTIHORAIRE
+        sbStroke.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
+                currentCourseMm = progress + 10
+                tvStroke.text = getString(R.string.timing_stroke, currentCourseMm)
+                timingView.setCourse(currentCourseMm.toDouble())
+            }
+            override fun onStartTrackingTouch(sb: SeekBar?) {}
+            override fun onStopTrackingTouch(sb: SeekBar?) {}
+        })
+
         findViewById<Button>(R.id.btnCw).setOnClickListener {
             isCw = true
             timingView.setClockwise(true)
@@ -79,7 +99,6 @@ class TimingActivity : AppCompatActivity() {
             playClickTone()
         }
 
-        // Moteur ANTIHORAIRE → avance HORAIRE
         findViewById<Button>(R.id.btnCcw).setOnClickListener {
             isCw = false
             timingView.setClockwise(false)
@@ -91,6 +110,7 @@ class TimingActivity : AppCompatActivity() {
             prefs.edit()
                 .putInt(KEY_ANGLE, currentAngle)
                 .putBoolean(KEY_DIRECTION, isCw)
+                .putInt(KEY_COURSE, currentCourseMm)
                 .apply()
             Toast.makeText(
                 this,
@@ -100,19 +120,11 @@ class TimingActivity : AppCompatActivity() {
             playClickTone()
         }
 
-        findViewById<Button>(R.id.btnBien).setOnClickListener {
-            saveFeel("Bien", currentAngle)
-        }
-        findViewById<Button>(R.id.btnMoyen).setOnClickListener {
-            saveFeel("Moyen", currentAngle)
-        }
-        findViewById<Button>(R.id.btnMax).setOnClickListener {
-            saveFeel("Max", currentAngle)
-        }
+        findViewById<Button>(R.id.btnBien).setOnClickListener { saveFeel("Bien", currentAngle) }
+        findViewById<Button>(R.id.btnMoyen).setOnClickListener { saveFeel("Moyen", currentAngle) }
+        findViewById<Button>(R.id.btnMax).setOnClickListener { saveFeel("Max", currentAngle) }
 
-        findViewById<Button>(R.id.btnHistory).setOnClickListener {
-            showHistory()
-        }
+        findViewById<Button>(R.id.btnHistory).setOnClickListener { showHistory() }
         findViewById<Button>(R.id.btnClearHistory).setOnClickListener {
             prefs.edit().remove(KEY_HISTORY).apply()
             tvHistory.text = getString(R.string.feel_empty)
@@ -130,6 +142,7 @@ class TimingActivity : AppCompatActivity() {
             currentAngle in 21..30 -> "✅ Avance sportive — usage cross / mi-régime"
             else -> "⚠️ Avance élevée — risque de cliquetis !"
         }
+        tvStroke.text = getString(R.string.timing_stroke, currentCourseMm)
     }
 
     private fun saveFeel(label: String, angle: Int) {
