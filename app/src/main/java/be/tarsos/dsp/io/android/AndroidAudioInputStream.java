@@ -1,8 +1,9 @@
 package be.tarsos.dsp.io.android;
 
 import android.media.AudioRecord;
+
 import java.io.IOException;
-import java.io.InputStream;
+
 import be.tarsos.dsp.io.TarsosDSPAudioFormat;
 import be.tarsos.dsp.io.TarsosDSPAudioInputStream;
 
@@ -11,6 +12,7 @@ public class AndroidAudioInputStream implements TarsosDSPAudioInputStream {
     private final AudioRecord audioRecord;
     private final TarsosDSPAudioFormat format;
     private boolean closed = false;
+    private boolean started = false;
 
     public AndroidAudioInputStream(AudioRecord audioRecord, TarsosDSPAudioFormat format) {
         this.audioRecord = audioRecord;
@@ -25,10 +27,34 @@ public class AndroidAudioInputStream implements TarsosDSPAudioInputStream {
     @Override
     public int read(byte[] b, int off, int len) throws IOException {
         if (closed) return -1;
-        if (audioRecord.getRecordingState() != AudioRecord.RECORDSTATE_RECORDING) {
+
+        if (!started) {
             audioRecord.startRecording();
+            started = true;
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException ignored) {}
         }
-        return audioRecord.read(b, off, len);
+
+        int totalRead = 0;
+        int attempts = 0;
+        while (totalRead < len && attempts < 5 && !closed) {
+            int read = audioRecord.read(b, off + totalRead, len - totalRead);
+            if (read > 0) {
+                totalRead += read;
+            } else if (read == AudioRecord.ERROR_INVALID_OPERATION
+                    || read == AudioRecord.ERROR_BAD_VALUE
+                    || read == AudioRecord.ERROR_DEAD_OBJECT) {
+                throw new IOException("AudioRecord read error: " + read);
+            } else {
+                attempts++;
+                try {
+                    Thread.sleep(20);
+                } catch (InterruptedException ignored) {}
+            }
+        }
+
+        return totalRead > 0 ? totalRead : len;
     }
 
     @Override
@@ -36,7 +62,9 @@ public class AndroidAudioInputStream implements TarsosDSPAudioInputStream {
         if (!closed) {
             closed = true;
             try {
-                audioRecord.stop();
+                if (started) {
+                    audioRecord.stop();
+                }
             } catch (IllegalStateException ignored) {}
             audioRecord.release();
         }
