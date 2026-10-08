@@ -133,6 +133,14 @@
             android:layout_marginTop="16dp"
             android:text="@string/calibrate_cylinder" />
 
+        <!-- ✅ Bouton d'aide -->
+        <Button
+            android:id="@+id/btnHelp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/help" />
+
         <!-- ✅ Texte "Cortex powered" en bleu -->
         <TextView
             android:id="@+id/tvPoweredBy"
